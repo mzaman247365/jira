@@ -1,5 +1,8 @@
 import { useLocation, Link } from "wouter";
-import { LayoutDashboard, FolderKanban, List, Plus, Settings, LogOut, Columns3 } from "lucide-react";
+import {
+  LayoutDashboard, FolderKanban, List, Plus, Settings, LogOut, Columns3,
+  Search, Star, User, BarChart3, GitBranch, Zap, Users, Package, Map, Timer,
+} from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { UserAvatar } from "@/components/user-avatar";
@@ -56,6 +59,22 @@ export function AppSidebar({ onCreateProject }: { onCreateProject: () => void })
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={location === "/my-work"}>
+                  <Link href="/my-work" data-testid="link-my-work">
+                    <User className="h-4 w-4" />
+                    <span>My Work</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={location === "/search"}>
+                  <Link href="/search" data-testid="link-search">
+                    <Search className="h-4 w-4" />
+                    <span>Search</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -103,7 +122,7 @@ export function AppSidebar({ onCreateProject }: { onCreateProject: () => void })
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={location.includes("/board")}>
+                    <SidebarMenuButton asChild isActive={location.includes("/board") && !location.includes("/sprint-board")}>
                       <Link href={`/project/${activeProjectId}/board`} data-testid="link-board">
                         <FolderKanban className="h-4 w-4" />
                         <span>Board</span>
@@ -115,6 +134,54 @@ export function AppSidebar({ onCreateProject }: { onCreateProject: () => void })
                       <Link href={`/project/${activeProjectId}/backlog`} data-testid="link-backlog">
                         <List className="h-4 w-4" />
                         <span>Backlog</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.includes("/sprint-board")}>
+                      <Link href={`/project/${activeProjectId}/sprint-board`} data-testid="link-sprint-board">
+                        <Timer className="h-4 w-4" />
+                        <span>Sprint Board</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.includes("/epics")}>
+                      <Link href={`/project/${activeProjectId}/epics`} data-testid="link-epics">
+                        <Zap className="h-4 w-4" />
+                        <span>Epics</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.includes("/roadmap")}>
+                      <Link href={`/project/${activeProjectId}/roadmap`} data-testid="link-roadmap">
+                        <Map className="h-4 w-4" />
+                        <span>Roadmap</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.includes("/releases")}>
+                      <Link href={`/project/${activeProjectId}/releases`} data-testid="link-releases">
+                        <Package className="h-4 w-4" />
+                        <span>Releases</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.includes("/reports")}>
+                      <Link href={`/project/${activeProjectId}/reports`} data-testid="link-reports">
+                        <BarChart3 className="h-4 w-4" />
+                        <span>Reports</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.includes("/team")}>
+                      <Link href={`/project/${activeProjectId}/team`} data-testid="link-team">
+                        <Users className="h-4 w-4" />
+                        <span>Team</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -137,7 +204,7 @@ export function AppSidebar({ onCreateProject }: { onCreateProject: () => void })
 
       <SidebarFooter className="p-3">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
+          <Link href="/profile" className="flex items-center gap-2 min-w-0 hover:opacity-80">
             <UserAvatar
               firstName={user?.firstName}
               lastName={user?.lastName}
@@ -152,7 +219,7 @@ export function AppSidebar({ onCreateProject }: { onCreateProject: () => void })
                 {user?.email}
               </div>
             </div>
-          </div>
+          </Link>
           <Button
             size="icon"
             variant="ghost"
