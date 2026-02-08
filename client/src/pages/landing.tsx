@@ -14,10 +14,10 @@ export default function Landing() {
             <span className="font-semibold text-lg tracking-tight" data-testid="text-brand">ProjectFlow</span>
           </div>
           <div className="flex items-center gap-3">
-            <a href="/api/login">
+            <a href="/login">
               <Button variant="ghost" data-testid="button-login-nav">Log in</Button>
             </a>
-            <a href="/api/login">
+            <a href="/register">
               <Button data-testid="button-signup-nav">Get Started</Button>
             </a>
           </div>
@@ -41,7 +41,7 @@ export default function Landing() {
                 that move fast and ship with confidence.
               </p>
               <div className="flex flex-wrap items-center gap-3">
-                <a href="/api/login">
+                <a href="/register">
                   <Button size="lg" className="gap-2" data-testid="button-get-started">
                     Get Started Free <ArrowRight className="h-4 w-4" />
                   </Button>

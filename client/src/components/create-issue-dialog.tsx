@@ -7,21 +7,42 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ISSUE_TYPES, PRIORITIES } from "@/lib/constants";
 import { IssueTypeIcon } from "@/components/issue-type-icon";
 import { PriorityIcon } from "@/components/priority-icon";
 import type { IssueType, Priority, Status } from "@/lib/constants";
+import type { Sprint } from "@shared/schema";
+
+const nanToUndefined = z.preprocess(
+  (val) => (typeof val === "number" && isNaN(val) ? undefined : val),
+  z.number().min(0).max(100).optional()
+);
+
+const nanToUndefinedNoMax = z.preprocess(
+  (val) => (typeof val === "number" && isNaN(val) ? undefined : val),
+  z.number().min(0).optional()
+);
+
+const emptyStringToUndefined = z.preprocess(
+  (val) => (val === "" ? undefined : val),
+  z.string().optional()
+);
 
 const createIssueSchema = z.object({
   title: z.string().min(1, "Title is required").max(255),
   description: z.string().optional(),
-  type: z.enum(["epic", "story", "task", "bug"]),
+  type: z.enum(["epic", "story", "task", "bug", "sub_task"]),
   priority: z.enum(["highest", "high", "medium", "low", "lowest"]),
   status: z.enum(["backlog", "todo", "in_progress", "in_review", "done"]).optional(),
-  storyPoints: z.number().min(0).max(100).optional(),
+  storyPoints: nanToUndefined,
+  parentId: emptyStringToUndefined,
+  sprintId: emptyStringToUndefined,
+  originalEstimate: nanToUndefinedNoMax,
+  startDate: emptyStringToUndefined,
+  dueDate: emptyStringToUndefined,
 });
 
 type CreateIssueForm = z.infer<typeof createIssueSchema>;
@@ -31,13 +52,22 @@ export function CreateIssueDialog({
   onOpenChange,
   projectId,
   defaultStatus,
+  defaultParentId,
+  defaultType,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: string;
   defaultStatus?: Status;
+  defaultParentId?: string;
+  defaultType?: IssueType;
 }) {
   const { toast } = useToast();
+
+  const { data: sprints = [] } = useQuery<Sprint[]>({
+    queryKey: ["/api/projects", projectId, "sprints"],
+    enabled: open,
+  });
 
   const {
     register,
@@ -50,19 +80,25 @@ export function CreateIssueDialog({
     defaultValues: {
       title: "",
       description: "",
-      type: "task",
+      type: defaultType || "task",
       priority: "medium",
       status: defaultStatus || "todo",
+      parentId: defaultParentId,
     },
   });
 
   const mutation = useMutation({
     mutationFn: async (data: CreateIssueForm) => {
-      const res = await apiRequest("POST", `/api/projects/${projectId}/issues`, data);
+      const payload: any = { ...data };
+      if (payload.startDate) payload.startDate = new Date(payload.startDate);
+      if (payload.dueDate) payload.dueDate = new Date(payload.dueDate);
+      if (payload.sprintId === "none") delete payload.sprintId;
+      const res = await apiRequest("POST", `/api/projects/${projectId}/issues`, payload);
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "issues"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/issues/recent"] });
       toast({ title: "Issue created" });
       reset();
       onOpenChange(false);
@@ -74,7 +110,7 @@ export function CreateIssueDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Issue</DialogTitle>
         </DialogHeader>
@@ -149,6 +185,66 @@ export function CreateIssueDialog({
               data-testid="input-issue-description"
             />
           </div>
+
+          {/* Sprint */}
+          <div className="space-y-2">
+            <Label>Sprint</Label>
+            <Controller
+              name="sprintId"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value || "none"} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="No sprint" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No sprint</SelectItem>
+                    {sprints.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name} {s.status === "active" ? "(Active)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+
+          {/* Story Points & Estimate */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Story Points</Label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                placeholder="0"
+                {...register("storyPoints", { valueAsNumber: true })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Original Estimate (min)</Label>
+              <Input
+                type="number"
+                min={0}
+                placeholder="0"
+                {...register("originalEstimate", { valueAsNumber: true })}
+              />
+            </div>
+          </div>
+
+          {/* Dates */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Start Date</Label>
+              <Input type="date" {...register("startDate")} />
+            </div>
+            <div className="space-y-2">
+              <Label>Due Date</Label>
+              <Input type="date" {...register("dueDate")} />
+            </div>
+          </div>
+
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel
